@@ -12,6 +12,7 @@ import {
 import { CurrentUser } from 'src/common/decorators/current-user.decorator'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
+import { MeResponseDto } from './dto/me-response.dto'
 import { RefreshTokenDto } from './dto/refresh-token.dto'
 import { JwtPayload } from './jwt.strategy'
 
@@ -96,14 +97,16 @@ POST /auth/refresh
 	@ApiBearerAuth()
 	@ApiOperation({
 		summary: 'Поточний авторизований користувач',
-		description: `Повертає інформацію про користувача, що виконав вхід.`,
+		description: `Повертає інформацію про користувача, що виконав вхід. 
+Потрібно передати access_token у заголовку Authorization.`,
 	})
 	@ApiResponse({
 		status: 200,
 		description: 'Дані поточного користувача (id, email, роль)',
+		type: MeResponseDto,
 	})
 	@ApiUnauthorizedResponse({ description: 'Неавторизований запит' })
-	me(@CurrentUser() user: JwtPayload) {
+	me(@CurrentUser() user: JwtPayload): MeResponseDto {
 		return user
 	}
 
