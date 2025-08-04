@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 
 import { InvalidCredentialsException } from 'src/common/exceptions/auth-exceptions'
+import { UserDocument } from '../users/schemas/user.schema'
 import { UserService } from '../users/user.service'
 
 @Injectable()
@@ -34,15 +35,17 @@ export class AuthService {
 			})
 
 			const user = await this.userService.findByEmail(payload.email)
-			if (!user) throw new UnauthorizedException('Користувача не знайдено')
+			if (!user) {
+				throw new UnauthorizedException('Користувача не знайдено')
+			}
 
 			return this.generateTokens(user)
-		} catch (e) {
+		} catch {
 			throw new UnauthorizedException('Невірний або прострочений refresh токен')
 		}
 	}
 
-	async generateTokens(user: any) {
+	async generateTokens(user: UserDocument) {
 		const payload = {
 			sub: user._id,
 			email: user.email,
@@ -50,12 +53,10 @@ export class AuthService {
 		}
 
 		const access_token = this.jwtService.sign(payload, {
-			secret: this.configService.get('JWT_SECRET'),
 			expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
 		})
 
 		const refresh_token = this.jwtService.sign(payload, {
-			secret: this.configService.get('JWT_SECRET'),
 			expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
 		})
 

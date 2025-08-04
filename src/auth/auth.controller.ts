@@ -1,20 +1,24 @@
-import { Body, Controller, Post } from '@nestjs/common'
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common'
+import { AuthGuard } from '@nestjs/passport'
 import {
 	ApiBadRequestResponse,
+	ApiBearerAuth,
 	ApiOperation,
 	ApiResponse,
 	ApiTags,
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger'
 
+import { CurrentUser } from 'src/common/decorators/current-user.decorator'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { RefreshTokenDto } from './dto/refresh-token.dto'
+import { JwtPayload } from './jwt.strategy'
 
 @ApiTags('Авторизація')
 @Controller('auth')
 export class AuthController {
-	constructor(private authService: AuthService) {}
+	constructor(private readonly authService: AuthService) {}
 
 	@Post('login')
 	@ApiOperation({
@@ -26,7 +30,6 @@ export class AuthController {
 Приклад запиту:
 POST /auth/login
 
-Тіло запиту:
 {
   "email": "admin@example.com",
   "password": "admin123"
@@ -39,6 +42,12 @@ POST /auth/login
 	@ApiResponse({
 		status: 200,
 		description: 'Повертає JWT токен доступу після успішної авторизації',
+		schema: {
+			example: {
+				access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6...',
+				refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6...',
+			},
+		},
 	})
 	@ApiUnauthorizedResponse({
 		description: 'Невірна електронна пошта або пароль',
@@ -60,9 +69,7 @@ POST /auth/refresh
 
 {
   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-}
-
-Після перевірки refresh токена система повертає нову пару токенів.`,
+}`,
 	})
 	@ApiResponse({
 		status: 200,
@@ -82,5 +89,31 @@ POST /auth/refresh
 	})
 	refresh(@Body() dto: RefreshTokenDto) {
 		return this.authService.refresh(dto.refresh_token)
+	}
+
+	@Get('me')
+	@UseGuards(AuthGuard('jwt'))
+	@ApiBearerAuth()
+	@ApiOperation({
+		summary: 'Поточний авторизований користувач',
+		description: `Повертає інформацію про користувача, що виконав вхід.
+
+Необхідно передати access_token у заголовку:
+Authorization: Bearer <token>`,
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Дані поточного користувача (id, email, роль)',
+		schema: {
+			example: {
+				userId: '65fb45cd2f44c5f405bb9e12',
+				email: 'admin@example.com',
+				role: 'admin',
+			},
+		},
+	})
+	@ApiUnauthorizedResponse({ description: 'Неавторизований запит' })
+	me(@CurrentUser() user: JwtPayload) {
+		return user
 	}
 }
