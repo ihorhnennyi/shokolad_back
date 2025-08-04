@@ -11,6 +11,7 @@ import {
 
 import { CurrentUser } from 'src/common/decorators/current-user.decorator'
 import { AuthService } from './auth.service'
+import { ForgotPasswordDto } from './dto/forgot-password.dto'
 import { LoginDto } from './dto/login.dto'
 import { MeResponseDto } from './dto/me-response.dto'
 import { RefreshTokenDto } from './dto/refresh-token.dto'
@@ -26,7 +27,7 @@ export class AuthController {
 		summary: 'Авторизація користувача',
 		description: `Цей маршрут дозволяє увійти в систему, використовуючи електронну пошту та пароль.
 
-Після успішної авторизації повертається JWT токен доступу, який необхідно використовувати для доступу до захищених ендпоінтів.
+Після успішної авторизації повертається JWT access і refresh токени.
 
 Приклад запиту:
 POST /auth/login
@@ -34,15 +35,11 @@ POST /auth/login
 {
   "email": "admin@example.com",
   "password": "admin123"
-}
-
-У разі помилки:
-- 400 Bad Request — якщо відсутні або некоректні вхідні дані
-- 401 Unauthorized — якщо користувач не знайдений або пароль невірний`,
+}`,
 	})
 	@ApiResponse({
 		status: 200,
-		description: 'Повертає JWT токен доступу після успішної авторизації',
+		description: 'JWT токени після успішної авторизації',
 		schema: {
 			example: {
 				access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6...',
@@ -50,11 +47,11 @@ POST /auth/login
 			},
 		},
 	})
-	@ApiUnauthorizedResponse({
-		description: 'Невірна електронна пошта або пароль',
-	})
 	@ApiBadRequestResponse({
 		description: 'Некоректні вхідні дані (email або пароль)',
+	})
+	@ApiUnauthorizedResponse({
+		description: 'Невірна електронна пошта або пароль',
 	})
 	login(@Body() dto: LoginDto) {
 		return this.authService.login(dto.email, dto.password)
@@ -62,8 +59,8 @@ POST /auth/login
 
 	@Post('refresh')
 	@ApiOperation({
-		summary: 'Оновлення токена доступу',
-		description: `Цей маршрут дозволяє оновити access токен, використовуючи дійсний refresh токен.
+		summary: 'Оновлення access токена',
+		description: `Оновлює JWT access і refresh токени за наявності валідного refresh токена.
 
 Приклад запиту:
 POST /auth/refresh
@@ -74,7 +71,7 @@ POST /auth/refresh
 	})
 	@ApiResponse({
 		status: 200,
-		description: 'Нова пара токенів (access + refresh)',
+		description: 'Оновлені JWT токени',
 		schema: {
 			example: {
 				access_token: 'new-access-token',
@@ -82,11 +79,11 @@ POST /auth/refresh
 			},
 		},
 	})
-	@ApiUnauthorizedResponse({
-		description: 'Невірний або прострочений refresh токен',
-	})
 	@ApiBadRequestResponse({
 		description: 'Відсутній або некоректний refresh токен',
+	})
+	@ApiUnauthorizedResponse({
+		description: 'Невірний або прострочений refresh токен',
 	})
 	refresh(@Body() dto: RefreshTokenDto) {
 		return this.authService.refresh(dto.refresh_token)
@@ -96,30 +93,43 @@ POST /auth/refresh
 	@UseGuards(AuthGuard('jwt'))
 	@ApiBearerAuth()
 	@ApiOperation({
-		summary: 'Поточний авторизований користувач',
-		description: `Повертає інформацію про користувача, що виконав вхід. 
-Потрібно передати access_token у заголовку Authorization.`,
+		summary: 'Отримати поточного користувача',
+		description: `Повертає дані про авторизованого користувача. Потрібно передати JWT access токен.`,
 	})
 	@ApiResponse({
 		status: 200,
-		description: 'Дані поточного користувача (id, email, роль)',
+		description: 'Інформація про користувача',
 		type: MeResponseDto,
 	})
-	@ApiUnauthorizedResponse({ description: 'Неавторизований запит' })
+	@ApiUnauthorizedResponse({
+		description: 'Користувач не авторизований або токен недійсний',
+	})
 	me(@CurrentUser() user: JwtPayload): MeResponseDto {
-		return user
+		return {
+			userId: user.sub,
+			email: user.email,
+			role: user.role,
+		}
 	}
 
 	@Get('check')
 	@UseGuards(AuthGuard('jwt'))
 	@ApiBearerAuth()
 	@ApiOperation({
-		summary: 'Перевірка токена доступу',
-		description: `Цей маршрут використовується для перевірки дійсності JWT access токена. Потрібен авторизований запит.`,
+		summary: 'Перевірка валідності access токена',
+		description: 'Простий запит для перевірки, чи дійсний access токен.',
 	})
-	@ApiResponse({ status: 200, description: 'Access токен дійсний' })
+	@ApiResponse({
+		status: 200,
+		description: 'Access токен дійсний',
+		schema: {
+			example: {
+				status: 'ok',
+			},
+		},
+	})
 	@ApiUnauthorizedResponse({
-		description: 'Неавторизований запит або прострочений токен',
+		description: 'Невірний або прострочений токен',
 	})
 	check() {
 		return { status: 'ok' }
@@ -130,11 +140,42 @@ POST /auth/refresh
 	@ApiBearerAuth()
 	@ApiOperation({
 		summary: 'Вихід користувача',
-		description: `Цей маршрут використовується для виходу користувача з системи. У продакшн-версії тут можна видаляти refresh токен із бази.`,
+		description: `Вихід користувача з системи. У майбутньому тут може бути реалізоване видалення refresh токена.`,
 	})
-	@ApiResponse({ status: 200, description: 'Успішний вихід користувача' })
-	@ApiUnauthorizedResponse({ description: 'Неавторизований запит' })
+	@ApiResponse({
+		status: 200,
+		description: 'Користувач успішно вийшов',
+		schema: {
+			example: {
+				message: 'Користувач admin@example.com вийшов із системи',
+			},
+		},
+	})
+	@ApiUnauthorizedResponse({
+		description: 'Користувач не авторизований',
+	})
 	logout(@CurrentUser() user: JwtPayload) {
-		return { message: `Користувач ${user.email} вийшов із системи` }
+		return {
+			message: `Користувач ${user.email} вийшов із системи`,
+		}
+	}
+
+	@Post('forgot-password')
+	@ApiOperation({
+		summary: 'Забули пароль — надсилання листа',
+		description: `Цей маршрут надсилає листа з посиланням на скидання пароля на вказану пошту.`,
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Лист успішно надіслано',
+		schema: {
+			example: {
+				message: 'Інструкції для скидання пароля надіслані на пошту',
+			},
+		},
+	})
+	@ApiBadRequestResponse({ description: 'Некоректна email адреса' })
+	forgotPassword(@Body() dto: ForgotPasswordDto) {
+		return this.authService.forgotPassword(dto.email)
 	}
 }

@@ -2,10 +2,10 @@ import { ApiProperty } from '@nestjs/swagger'
 
 export class MeResponseDto {
 	@ApiProperty({
-		example: '64a1f9f4e72b6a0012d13c9a',
+		example: '64fae5a6c62f5a85a9d3a51c',
 		description: 'Унікальний ідентифікатор користувача',
 	})
-	sub: string
+	userId: string
 
 	@ApiProperty({
 		example: 'admin@example.com',
@@ -15,7 +15,7 @@ export class MeResponseDto {
 
 	@ApiProperty({
 		example: 'admin',
-		description: 'Роль користувача (наприклад, admin, user тощо)',
+		description: 'Роль користувача (admin або user)',
 	})
 	role: string
 }

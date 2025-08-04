@@ -89,4 +89,11 @@ export class AuthService {
 
 		return { access_token, refresh_token }
 	}
+
+	async forgotPassword(email: string) {
+		// Тут будет логика отправки email
+		return {
+			message: 'Інструкції для скидання пароля надіслані на пошту',
+		}
+	}
 }
