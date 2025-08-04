@@ -1,7 +1,11 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException,
+} from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import * as bcrypt from 'bcryptjs'
-import { Model } from 'mongoose'
+import { Model, Types } from 'mongoose'
 
 import { UserRole } from 'src/common/enums/role.enum'
 import { CreateUserDto } from './dto/create-user.dto'
@@ -35,5 +39,18 @@ export class UserService {
 
 	async findAll(): Promise<UserDocument[]> {
 		return this.userModel.find()
+	}
+
+	async findById(id: string): Promise<UserDocument> {
+		if (!Types.ObjectId.isValid(id)) {
+			throw new BadRequestException('Некоректний формат ID користувача')
+		}
+
+		const user = await this.userModel.findById(id)
+		if (!user) {
+			throw new NotFoundException('Користувача не знайдено')
+		}
+
+		return user
 	}
 }
