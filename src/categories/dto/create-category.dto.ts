@@ -1,14 +1,18 @@
-import { ApiProperty } from '@nestjs/swagger'
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { IsMongoId, IsOptional, IsString } from 'class-validator'
 
 export class CreateCategoryDto {
-	@ApiProperty()
+	@ApiProperty({ example: 'Новини' })
 	@IsString()
-	@IsNotEmpty()
 	name: string
 
-	@ApiProperty({ required: false })
-	@IsString()
+	@ApiPropertyOptional({ example: 'Опис категорії' })
 	@IsOptional()
+	@IsString()
 	description?: string
+
+	@ApiPropertyOptional({ example: '64e1a9871e4a7e29df99aa1f' })
+	@IsOptional()
+	@IsMongoId()
+	parent?: string
 }

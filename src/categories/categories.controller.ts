@@ -3,6 +3,7 @@ import {
 	Controller,
 	Delete,
 	Get,
+	NotFoundException,
 	Param,
 	Patch,
 	Post,
@@ -18,10 +19,12 @@ import {
 	ApiTags,
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger'
+
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'
 import { RolesGuard } from 'src/common/guards/roles.guard'
 import { Roles } from '../common/decorators/roles.decorator'
 import { UserRole } from '../common/enums/role.enum'
+
 import { CategoriesService } from './categories.service'
 import { CreateCategoryDto } from './dto/create-category.dto'
 import { UpdateCategoryDto } from './dto/update-category.dto'
@@ -38,29 +41,16 @@ export class CategoriesController {
 	@Roles(UserRole.ADMIN)
 	@ApiOperation({
 		summary: 'Створити категорію (лише для адміністратора)',
-		description: `Цей маршрут дозволяє створити нову категорію. Доступний лише адміністраторам.
-
-Приклад запиту:
-POST /categories
-{
-  "name": "Новини",
-  "description": "Опис категорії"
-}`,
+		description: `Цей маршрут дозволяє створити нову категорію. Доступний лише адміністраторам.`,
 	})
 	@ApiResponse({
 		status: 201,
-		description: 'Категорію успішно створено',
+		description: 'Категорію створено',
 		type: Category,
 	})
-	@ApiUnauthorizedResponse({
-		description: 'Користувач не авторизований',
-	})
-	@ApiForbiddenResponse({
-		description: 'Лише адміністратор може створювати категорії',
-	})
-	@ApiBadRequestResponse({
-		description: 'Некоректні дані категорії',
-	})
+	@ApiUnauthorizedResponse({ description: 'Користувач не авторизований' })
+	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
+	@ApiBadRequestResponse({ description: 'Некоректні дані категорії' })
 	create(@Body() dto: CreateCategoryDto) {
 		return this.service.create(dto)
 	}
@@ -68,11 +58,11 @@ POST /categories
 	@Get()
 	@ApiOperation({
 		summary: 'Отримати всі категорії',
-		description: 'Цей маршрут повертає список усіх доступних категорій.',
+		description: 'Повертає список усіх доступних категорій.',
 	})
 	@ApiResponse({
 		status: 200,
-		description: 'Список категорій отримано успішно',
+		description: 'Категорії отримано',
 		type: [Category],
 	})
 	findAll() {
@@ -82,16 +72,14 @@ POST /categories
 	@Get(':id')
 	@ApiOperation({
 		summary: 'Отримати категорію за ID',
-		description: 'Цей маршрут повертає одну категорію за її ідентифікатором.',
+		description: 'Повертає категорію за її унікальним ідентифікатором.',
 	})
 	@ApiResponse({
 		status: 200,
-		description: 'Категорію знайдено успішно',
+		description: 'Категорію знайдено',
 		type: Category,
 	})
-	@ApiNotFoundResponse({
-		description: 'Категорію не знайдено',
-	})
+	@ApiNotFoundResponse({ description: 'Категорію не знайдено' })
 	findById(@Param('id') id: string) {
 		return this.service.findById(id)
 	}
@@ -101,20 +89,16 @@ POST /categories
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles(UserRole.ADMIN)
 	@ApiOperation({
-		summary: 'Оновити категорію за ID (лише для адміністратора)',
-		description: `Цей маршрут дозволяє оновити назву або опис категорії.`,
+		summary: 'Оновити категорію (лише для адміністратора)',
+		description: 'Оновлює назву або опис категорії за ID.',
 	})
 	@ApiResponse({
 		status: 200,
-		description: 'Категорію успішно оновлено',
+		description: 'Категорію оновлено',
 		type: Category,
 	})
-	@ApiNotFoundResponse({
-		description: 'Категорію не знайдено',
-	})
-	@ApiForbiddenResponse({
-		description: 'Лише адміністратор може оновлювати категорії',
-	})
+	@ApiNotFoundResponse({ description: 'Категорію не знайдено' })
+	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
 	update(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
 		return this.service.update(id, dto)
 	}
@@ -124,21 +108,57 @@ POST /categories
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles(UserRole.ADMIN)
 	@ApiOperation({
-		summary: 'Видалити категорію за ID (лише для адміністратора)',
+		summary: 'Видалити категорію (лише для адміністратора)',
+		description: 'Видаляє категорію за її ID. Також видаляє всі підкатегорії.',
+	})
+	@ApiResponse({ status: 200, description: 'Категорію видалено' })
+	@ApiNotFoundResponse({ description: 'Категорію не знайдено' })
+	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
+	remove(@Param('id') id: string) {
+		return this.service.remove(id)
+	}
+
+	@Post(':parentId/subcategory')
+	@ApiBearerAuth()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN)
+	@ApiOperation({
+		summary: 'Створити підкатегорію (лише для адміністратора)',
+		description: 'Додає підкатегорію до вказаної батьківської категорії.',
+	})
+	@ApiResponse({
+		status: 201,
+		description: 'Підкатегорію створено',
+		type: Category,
+	})
+	@ApiNotFoundResponse({ description: 'Батьківську категорію не знайдено' })
+	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
+	@ApiBadRequestResponse({ description: 'Некоректні дані підкатегорії' })
+	async createSubcategory(
+		@Param('parentId') parentId: string,
+		@Body() dto: CreateCategoryDto
+	) {
+		const parent = await this.service.findById(parentId)
+		if (!parent) {
+			throw new NotFoundException('Батьківську категорію не знайдено')
+		}
+
+		return this.service.create({ ...dto, parent: parentId })
+	}
+
+	@Get('parent/:parentId')
+	@ApiOperation({
+		summary: 'Отримати підкатегорії за ID батьківської категорії',
 		description:
-			'Цей маршрут дозволяє видалити категорію за її ідентифікатором.',
+			'Повертає всі підкатегорії для заданої батьківської категорії.',
 	})
 	@ApiResponse({
 		status: 200,
-		description: 'Категорію успішно видалено',
+		description: 'Підкатегорії отримано',
+		type: [Category],
 	})
-	@ApiNotFoundResponse({
-		description: 'Категорію не знайдено',
-	})
-	@ApiForbiddenResponse({
-		description: 'Лише адміністратор може видаляти категорії',
-	})
-	remove(@Param('id') id: string) {
-		return this.service.remove(id)
+	@ApiNotFoundResponse({ description: 'Батьківську категорію не знайдено' })
+	findChildren(@Param('parentId') parentId: string) {
+		return this.service.findChildren(parentId)
 	}
 }

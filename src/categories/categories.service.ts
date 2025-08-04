@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { Model } from 'mongoose'
+import { Model, Types } from 'mongoose'
 import { CreateCategoryDto } from './dto/create-category.dto'
 import { UpdateCategoryDto } from './dto/update-category.dto'
 import { Category, CategoryDocument } from './schemas/category.schema'
@@ -9,20 +9,31 @@ import { Category, CategoryDocument } from './schemas/category.schema'
 export class CategoriesService {
 	constructor(
 		@InjectModel(Category.name)
-		private categoryModel: Model<CategoryDocument>
+		private readonly categoryModel: Model<CategoryDocument>
 	) {}
 
 	async create(dto: CreateCategoryDto): Promise<Category> {
+		if (dto.parent && !Types.ObjectId.isValid(dto.parent)) {
+			throw new NotFoundException('Некоректний ID батьківської категорії')
+		}
+
+		if (dto.parent) {
+			const parentExists = await this.categoryModel.exists({ _id: dto.parent })
+			if (!parentExists) {
+				throw new NotFoundException('Батьківську категорію не знайдено')
+			}
+		}
+
 		return this.categoryModel.create(dto)
 	}
 
 	async findAll(): Promise<Category[]> {
-		return this.categoryModel.find()
+		return this.categoryModel.find().sort({ createdAt: -1 })
 	}
 
-	async findById(id: string): Promise<Category> {
+	async findById(id: string): Promise<CategoryDocument> {
 		const category = await this.categoryModel.findById(id)
-		if (!category) throw new NotFoundException('Категорія не знайдена')
+		if (!category) throw new NotFoundException('Категорію не знайдено')
 		return category
 	}
 
@@ -38,7 +49,21 @@ export class CategoriesService {
 		return category
 	}
 
-	async remove(id: string) {
-		return this.categoryModel.findByIdAndDelete(id)
+	async remove(id: string): Promise<Category> {
+		const category = await this.categoryModel.findByIdAndDelete(id)
+		if (!category) {
+			throw new NotFoundException('Категорія не знайдена')
+		}
+
+		await this.categoryModel.deleteMany({ parent: id })
+
+		return category
+	}
+
+	async findChildren(parentId: string): Promise<Category[]> {
+		if (!Types.ObjectId.isValid(parentId)) {
+			throw new NotFoundException('Некоректний ID категорії')
+		}
+		return this.categoryModel.find({ parent: parentId })
 	}
 }
