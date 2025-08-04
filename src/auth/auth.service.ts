@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 
 import { InvalidCredentialsException } from 'src/common/exceptions/auth-exceptions'
+import { MailerService } from 'src/common/services/mailer.service'
 import { UserDocument } from '../users/schemas/user.schema'
 import { UserService } from '../users/user.service'
 import { ResetPasswordDto } from './dto/reset-password.dto'
@@ -23,7 +24,8 @@ export class AuthService {
 	constructor(
 		private readonly userService: UserService,
 		private readonly jwtService: JwtService,
-		private readonly configService: ConfigService
+		private readonly configService: ConfigService,
+		private readonly mailerService: MailerService
 	) {
 		this.jwtSecret =
 			this.configService.get<string>('JWT_SECRET') || 'default_secret'
@@ -99,23 +101,15 @@ export class AuthService {
 	async forgotPassword(email: string) {
 		const user = await this.userService.findByEmail(email)
 		if (!user) {
-			throw new NotFoundException('Користувача з таким email не знайдено')
+			throw new NotFoundException('Користувача не знайдено')
 		}
 
-		// Генерация токена
-		const resetToken = this.jwtService.sign(
-			{ email: user.email },
-			{
-				secret: this.jwtSecret,
-				expiresIn: '1h',
-			}
+		const token = this.jwtService.sign(
+			{ email },
+			{ secret: this.jwtSecret, expiresIn: '1h' }
 		)
 
-		const resetLink = `https://example.com/reset-password?token=${resetToken}`
-
-		console.log(`🔗 Reset password link for ${email}: ${resetLink}`)
-
-		// TODO: подключить EmailService и отправить письмо
+		await this.mailerService.sendPasswordResetEmail(email, token)
 
 		return {
 			message: 'Інструкції для скидання пароля надіслані на пошту',
