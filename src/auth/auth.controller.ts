@@ -116,4 +116,32 @@ Authorization: Bearer <token>`,
 	me(@CurrentUser() user: JwtPayload) {
 		return user
 	}
+
+	@Get('check')
+	@UseGuards(AuthGuard('jwt'))
+	@ApiBearerAuth()
+	@ApiOperation({
+		summary: 'Перевірка токена доступу',
+		description: `Цей маршрут використовується для перевірки дійсності JWT access токена. Потрібен авторизований запит.`,
+	})
+	@ApiResponse({ status: 200, description: 'Access токен дійсний' })
+	@ApiUnauthorizedResponse({
+		description: 'Неавторизований запит або прострочений токен',
+	})
+	check() {
+		return { status: 'ok' }
+	}
+
+	@Post('logout')
+	@UseGuards(AuthGuard('jwt'))
+	@ApiBearerAuth()
+	@ApiOperation({
+		summary: 'Вихід користувача',
+		description: `Цей маршрут використовується для виходу користувача з системи. У продакшн-версії тут можна видаляти refresh токен із бази.`,
+	})
+	@ApiResponse({ status: 200, description: 'Успішний вихід користувача' })
+	@ApiUnauthorizedResponse({ description: 'Неавторизований запит' })
+	logout(@CurrentUser() user: JwtPayload) {
+		return { message: `Користувач ${user.email} вийшов із системи` }
+	}
 }
