@@ -9,6 +9,7 @@ import {
 
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
+import { RefreshTokenDto } from './dto/refresh-token.dto'
 
 @ApiTags('Авторизація')
 @Controller('auth')
@@ -47,5 +48,39 @@ POST /auth/login
 	})
 	login(@Body() dto: LoginDto) {
 		return this.authService.login(dto.email, dto.password)
+	}
+
+	@Post('refresh')
+	@ApiOperation({
+		summary: 'Оновлення токена доступу',
+		description: `Цей маршрут дозволяє оновити access токен, використовуючи дійсний refresh токен.
+
+Приклад запиту:
+POST /auth/refresh
+
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+}
+
+Після перевірки refresh токена система повертає нову пару токенів.`,
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Нова пара токенів (access + refresh)',
+		schema: {
+			example: {
+				access_token: 'new-access-token',
+				refresh_token: 'new-refresh-token',
+			},
+		},
+	})
+	@ApiUnauthorizedResponse({
+		description: 'Невірний або прострочений refresh токен',
+	})
+	@ApiBadRequestResponse({
+		description: 'Відсутній або некоректний refresh токен',
+	})
+	refresh(@Body() dto: RefreshTokenDto) {
+		return this.authService.refresh(dto.refresh_token)
 	}
 }
