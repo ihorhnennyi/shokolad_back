@@ -96,21 +96,11 @@ POST /auth/refresh
 	@ApiBearerAuth()
 	@ApiOperation({
 		summary: 'Поточний авторизований користувач',
-		description: `Повертає інформацію про користувача, що виконав вхід.
-
-Необхідно передати access_token у заголовку:
-Authorization: Bearer <token>`,
+		description: `Повертає інформацію про користувача, що виконав вхід.`,
 	})
 	@ApiResponse({
 		status: 200,
 		description: 'Дані поточного користувача (id, email, роль)',
-		schema: {
-			example: {
-				userId: '65fb45cd2f44c5f405bb9e12',
-				email: 'admin@example.com',
-				role: 'admin',
-			},
-		},
 	})
 	@ApiUnauthorizedResponse({ description: 'Неавторизований запит' })
 	me(@CurrentUser() user: JwtPayload) {
