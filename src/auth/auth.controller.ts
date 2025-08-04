@@ -15,6 +15,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto'
 import { LoginDto } from './dto/login.dto'
 import { MeResponseDto } from './dto/me-response.dto'
 import { RefreshTokenDto } from './dto/refresh-token.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
 import { JwtPayload } from './jwt.strategy'
 
 @ApiTags('Авторизація')
@@ -177,5 +178,28 @@ POST /auth/refresh
 	@ApiBadRequestResponse({ description: 'Некоректна email адреса' })
 	forgotPassword(@Body() dto: ForgotPasswordDto) {
 		return this.authService.forgotPassword(dto.email)
+	}
+
+	@Post('reset-password')
+	@ApiOperation({
+		summary: 'Скидання пароля',
+		description: `Цей маршрут дозволяє встановити новий пароль, використовуючи токен відновлення.
+
+Цей токен надсилається на email користувача при запиті /auth/forgot-password.`,
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Пароль успішно оновлено',
+		schema: {
+			example: {
+				message: 'Пароль успішно змінено',
+			},
+		},
+	})
+	@ApiBadRequestResponse({
+		description: 'Некоректні дані або недійсний токен',
+	})
+	resetPassword(@Body() dto: ResetPasswordDto) {
+		return this.authService.resetPassword(dto)
 	}
 }

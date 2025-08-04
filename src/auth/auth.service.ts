@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException,
+	UnauthorizedException,
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
@@ -6,6 +11,7 @@ import * as bcrypt from 'bcryptjs'
 import { InvalidCredentialsException } from 'src/common/exceptions/auth-exceptions'
 import { UserDocument } from '../users/schemas/user.schema'
 import { UserService } from '../users/user.service'
+import { ResetPasswordDto } from './dto/reset-password.dto'
 import { JwtPayload } from './jwt.strategy'
 
 @Injectable()
@@ -95,5 +101,29 @@ export class AuthService {
 		return {
 			message: 'Інструкції для скидання пароля надіслані на пошту',
 		}
+	}
+
+	async resetPassword(dto: ResetPasswordDto) {
+		const { token, newPassword } = dto
+
+		let payload: { email: string }
+
+		try {
+			payload = this.jwtService.verify(token, {
+				secret: this.jwtSecret,
+			})
+		} catch (error) {
+			throw new BadRequestException('Недійсний або прострочений токен')
+		}
+
+		const user = await this.userService.findByEmail(payload.email)
+		if (!user) {
+			throw new NotFoundException('Користувача не знайдено')
+		}
+
+		user.password = await bcrypt.hash(newPassword, 10)
+		await user.save()
+
+		return { message: 'Пароль успішно змінено' }
 	}
 }
