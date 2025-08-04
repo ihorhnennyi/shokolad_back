@@ -11,6 +11,9 @@ export class User {
 
 	@Prop({ required: true })
 	role: string
+
+	@Prop({ default: true })
+	isActive: boolean
 }
 
 export type UserDocument = User &

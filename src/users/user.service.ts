@@ -9,6 +9,8 @@ import { Model, Types } from 'mongoose'
 
 import { UserRole } from 'src/common/enums/role.enum'
 import { CreateUserDto } from './dto/create-user.dto'
+import { UpdateMeDto } from './dto/update-me.dto'
+import { UpdateUserDto } from './dto/update-user.dto'
 import { User, UserDocument } from './schemas/user.schema'
 
 @Injectable()
@@ -52,5 +54,64 @@ export class UserService {
 		}
 
 		return user
+	}
+
+	async deleteById(id: string): Promise<void> {
+		if (!Types.ObjectId.isValid(id)) {
+			throw new BadRequestException('Некоректний ID користувача')
+		}
+
+		const result = await this.userModel.deleteOne({ _id: id })
+		if (result.deletedCount === 0) {
+			throw new NotFoundException('Користувача не знайдено')
+		}
+	}
+
+	async updateById(id: string, dto: UpdateUserDto): Promise<UserDocument> {
+		const user = await this.userModel.findById(id)
+		if (!user) {
+			throw new NotFoundException('Користувача не знайдено')
+		}
+
+		if (dto.email) user.email = dto.email
+		if (dto.role) user.role = dto.role
+		if (dto.password) {
+			user.password = await bcrypt.hash(dto.password, 10)
+		}
+
+		return user.save()
+	}
+
+	async updateMe(userId: string, dto: UpdateMeDto): Promise<UserDocument> {
+		const user = await this.userModel.findById(userId)
+		if (!user) {
+			throw new NotFoundException('Користувача не знайдено')
+		}
+
+		if (dto.email) user.email = dto.email
+		if (dto.password) {
+			user.password = await bcrypt.hash(dto.password, 10)
+		}
+
+		return user.save()
+	}
+
+	async deactivate(id: string): Promise<UserDocument> {
+		const user = await this.userModel.findById(id)
+		if (!user) {
+			throw new NotFoundException('Користувача не знайдено')
+		}
+		user.isActive = false
+		return user.save()
+	}
+
+	async updateStatus(id: string, isActive: boolean): Promise<UserDocument> {
+		const user = await this.userModel.findById(id)
+		if (!user) {
+			throw new NotFoundException('Користувача не знайдено')
+		}
+
+		user.isActive = isActive
+		return user.save()
 	}
 }

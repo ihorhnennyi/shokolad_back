@@ -45,6 +45,13 @@ export class AuthService {
 
 	async login(email: string, password: string) {
 		const user = await this.validateUser(email, password)
+
+		if (!user.isActive) {
+			throw new UnauthorizedException(
+				'Ваш обліковий запис деактивовано. Зверніться до адміністратора.'
+			)
+		}
+
 		return this.generateTokens(user)
 	}
 
