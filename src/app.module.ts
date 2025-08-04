@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { MongooseModule } from '@nestjs/mongoose'
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { ProductsModule } from './products/products.module';
-import { CategoriesModule } from './categories/categories.module';
-import { OptionsModule } from './options/options.module';
-import { OrdersModule } from './orders/orders.module';
+import { AuthModule } from './auth/auth.module'
+import { CategoriesModule } from './categories/categories.module'
+import { OptionsModule } from './options/options.module'
+import { OrdersModule } from './orders/orders.module'
+import { ProductsModule } from './products/products.module'
+import { UserModule } from './users/user.module'
 
 @Module({
 	imports: [
@@ -15,7 +15,7 @@ import { OrdersModule } from './orders/orders.module';
 		}),
 		MongooseModule.forRoot(process.env.MONGODB_URI || ''),
 		AuthModule,
-		UsersModule,
+		UserModule,
 		ProductsModule,
 		CategoriesModule,
 		OptionsModule,
