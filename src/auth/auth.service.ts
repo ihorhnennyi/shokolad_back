@@ -97,7 +97,26 @@ export class AuthService {
 	}
 
 	async forgotPassword(email: string) {
-		// Тут будет логика отправки email
+		const user = await this.userService.findByEmail(email)
+		if (!user) {
+			throw new NotFoundException('Користувача з таким email не знайдено')
+		}
+
+		// Генерация токена
+		const resetToken = this.jwtService.sign(
+			{ email: user.email },
+			{
+				secret: this.jwtSecret,
+				expiresIn: '1h',
+			}
+		)
+
+		const resetLink = `https://example.com/reset-password?token=${resetToken}`
+
+		console.log(`🔗 Reset password link for ${email}: ${resetLink}`)
+
+		// TODO: подключить EmailService и отправить письмо
+
 		return {
 			message: 'Інструкції для скидання пароля надіслані на пошту',
 		}
