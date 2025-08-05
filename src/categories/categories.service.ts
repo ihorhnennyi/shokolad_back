@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
 import { CreateCategoryDto } from './dto/create-category.dto'
+import { UpdateCategoryOrderDto } from './dto/update-category-order.dto'
 import { UpdateCategoryDto } from './dto/update-category.dto'
 import { CategoryWithChildren } from './interfaces/category-with-children.interface'
 import { Category, CategoryDocument } from './schemas/category.schema'
@@ -102,5 +103,20 @@ export class CategoriesService {
 		}
 
 		return roots
+	}
+
+	async updateOrder(
+		id: string,
+		dto: UpdateCategoryOrderDto
+	): Promise<Category> {
+		const category = await this.categoryModel.findByIdAndUpdate(
+			id,
+			{ order: dto.order },
+			{ new: true }
+		)
+		if (!category) {
+			throw new NotFoundException('Категорію не знайдено')
+		}
+		return category
 	}
 }

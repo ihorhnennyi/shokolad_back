@@ -13,6 +13,9 @@ export class Category {
 
 	@Prop({ type: Types.ObjectId, ref: 'Category', default: null })
 	parent?: Types.ObjectId
+
+	@Prop({ type: Number, default: 0 })
+	order: number
 }
 
 export const CategorySchema = SchemaFactory.createForClass(Category)

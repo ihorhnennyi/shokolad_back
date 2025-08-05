@@ -27,6 +27,7 @@ import { UserRole } from '../common/enums/role.enum'
 
 import { CategoriesService } from './categories.service'
 import { CreateCategoryDto } from './dto/create-category.dto'
+import { UpdateCategoryOrderDto } from './dto/update-category-order.dto'
 import { UpdateCategoryDto } from './dto/update-category.dto'
 import { Category } from './schemas/category.schema'
 
@@ -173,5 +174,20 @@ export class CategoriesController {
 	})
 	findTree() {
 		return this.service.findTree()
+	}
+
+	@Patch(':id/order')
+	@ApiBearerAuth()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN)
+	@ApiOperation({
+		summary: 'Оновити порядок категорії (лише для адміністратора)',
+		description: 'Змінює поле order для сортування категорій.',
+	})
+	@ApiResponse({ status: 200, description: 'Порядок оновлено', type: Category })
+	@ApiNotFoundResponse({ description: 'Категорію не знайдено' })
+	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
+	updateOrder(@Param('id') id: string, @Body() dto: UpdateCategoryOrderDto) {
+		return this.service.updateOrder(id, dto)
 	}
 }
