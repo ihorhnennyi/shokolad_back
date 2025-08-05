@@ -223,4 +223,19 @@ export class CategoriesController {
 	search(@Query('query') query: string) {
 		return this.service.search(query)
 	}
+
+	@Get(':id/path')
+	@ApiOperation({
+		summary: 'Отримати шлях до категорії',
+		description: 'Повертає повний шлях до категорії від кореневої до поточної.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Шлях до категорії отримано',
+		type: [Category],
+	})
+	@ApiNotFoundResponse({ description: 'Категорію не знайдено' })
+	getPath(@Param('id') id: string) {
+		return this.service.getPath(id)
+	}
 }

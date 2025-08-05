@@ -134,4 +134,25 @@ export class CategoriesService {
 			name: { $regex: query, $options: 'i' },
 		})
 	}
+
+	async getPath(id: string): Promise<Category[]> {
+		if (!Types.ObjectId.isValid(id)) {
+			throw new NotFoundException('Некоректний ID категорії')
+		}
+
+		const path: Category[] = []
+		let current = await this.categoryModel.findById(id)
+
+		while (current) {
+			path.unshift(current)
+			if (!current.parent) break
+			current = await this.categoryModel.findById(current.parent)
+		}
+
+		if (!path.length) {
+			throw new NotFoundException('Категорію не знайдено')
+		}
+
+		return path
+	}
 }
