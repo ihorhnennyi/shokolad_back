@@ -119,4 +119,12 @@ export class CategoriesService {
 		}
 		return category
 	}
+
+	async toggleActive(id: string): Promise<Category> {
+		const category = await this.categoryModel.findById(id)
+		if (!category) throw new NotFoundException('Категорію не знайдено')
+
+		category.isActive = !category.isActive
+		return category.save()
+	}
 }

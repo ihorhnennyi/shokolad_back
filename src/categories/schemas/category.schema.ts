@@ -16,6 +16,9 @@ export class Category {
 
 	@Prop({ type: Number, default: 0 })
 	order: number
+
+	@Prop({ default: true })
+	isActive: boolean
 }
 
 export const CategorySchema = SchemaFactory.createForClass(Category)

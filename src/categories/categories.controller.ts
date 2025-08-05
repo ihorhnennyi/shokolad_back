@@ -190,4 +190,22 @@ export class CategoriesController {
 	updateOrder(@Param('id') id: string, @Body() dto: UpdateCategoryOrderDto) {
 		return this.service.updateOrder(id, dto)
 	}
+
+	@Patch(':id/toggle-active')
+	@ApiBearerAuth()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN)
+	@ApiOperation({
+		summary: 'Увімкнути/вимкнути категорію (isActive)',
+		description: 'Перемикає статус активності категорії.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Статус активності оновлено',
+		type: Category,
+	})
+	@ApiNotFoundResponse({ description: 'Категорію не знайдено' })
+	toggleActive(@Param('id') id: string) {
+		return this.service.toggleActive(id)
+	}
 }
