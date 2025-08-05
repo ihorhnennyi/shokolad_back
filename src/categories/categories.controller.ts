@@ -238,4 +238,26 @@ export class CategoriesController {
 	getPath(@Param('id') id: string) {
 		return this.service.getPath(id)
 	}
+
+	@Get('stats')
+	@ApiOperation({
+		summary: 'Отримати статистику по категоріям',
+		description:
+			'Повертає загальну статистику по категоріях: загальна кількість, кількість кореневих, підкатегорій та максимальна глибина.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Статистику отримано',
+		schema: {
+			example: {
+				total: 15,
+				rootCount: 5,
+				childrenCount: 10,
+				maxDepth: 3,
+			},
+		},
+	})
+	getStats() {
+		return this.service.getStats()
+	}
 }

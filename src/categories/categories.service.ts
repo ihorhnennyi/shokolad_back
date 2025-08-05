@@ -155,4 +155,43 @@ export class CategoriesService {
 
 		return path
 	}
+
+	async getStats() {
+		const total = await this.categoryModel.countDocuments()
+		const rootCount = await this.categoryModel.countDocuments({ parent: null })
+		const childrenCount = await this.categoryModel.countDocuments({
+			parent: { $ne: null },
+		})
+
+		const categories = await this.categoryModel.find().lean()
+
+		const buildDepthMap = (
+			categoryId: string,
+			depth: number,
+			map: Map<string, number>
+		) => {
+			map.set(categoryId, depth)
+			for (const cat of categories) {
+				if (cat.parent?.toString() === categoryId) {
+					buildDepthMap(cat._id.toString(), depth + 1, map)
+				}
+			}
+		}
+
+		const depthMap = new Map<string, number>()
+		for (const cat of categories) {
+			if (!cat.parent) {
+				buildDepthMap(cat._id.toString(), 1, depthMap)
+			}
+		}
+
+		const maxDepth = Math.max(...Array.from(depthMap.values()), 0)
+
+		return {
+			total,
+			rootCount,
+			childrenCount,
+			maxDepth,
+		}
+	}
 }
