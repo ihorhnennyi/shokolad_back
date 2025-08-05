@@ -194,4 +194,39 @@ export class CategoriesService {
 			maxDepth,
 		}
 	}
+
+	async getFlatTree(): Promise<(Category & { level: number })[]> {
+		const categories = await this.categoryModel.find().lean()
+
+		const categoryMap = new Map<string, any>()
+		const result: (Category & { level: number })[] = []
+
+		categories.forEach(cat => {
+			categoryMap.set(cat._id.toString(), { ...cat, level: 0 })
+		})
+
+		for (const cat of categoryMap.values()) {
+			let level = 0
+			let currentParent = cat.parent?.toString()
+			while (currentParent) {
+				level++
+				const parent = categoryMap.get(currentParent)
+				currentParent = parent?.parent?.toString()
+			}
+			cat.level = level
+			result.push(cat)
+		}
+
+		result.sort((a, b) => a.level - b.level)
+
+		return result
+	}
+
+	async getLeafCategories(): Promise<Category[]> {
+		const all = await this.categoryModel.find().lean()
+		const parentIds = new Set(
+			all.map(cat => cat.parent?.toString()).filter(Boolean)
+		)
+		return all.filter(cat => !parentIds.has(cat._id.toString()))
+	}
 }

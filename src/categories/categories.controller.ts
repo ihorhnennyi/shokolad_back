@@ -260,4 +260,24 @@ export class CategoriesController {
 	getStats() {
 		return this.service.getStats()
 	}
+
+	@Get('tree-flat')
+	@ApiOperation({ summary: 'Плоске дерево категорій' })
+	@ApiResponse({
+		status: 200,
+		description: 'Список категорій з рівнем вкладеності',
+	})
+	getFlatTree() {
+		return this.service.getFlatTree()
+	}
+
+	@Get('leaf')
+	@ApiOperation({ summary: 'Отримати лише leaf-категорії' })
+	@ApiResponse({
+		status: 200,
+		description: 'Список категорій без підкатегорій',
+	})
+	getLeafCategories() {
+		return this.service.getLeafCategories()
+	}
 }
