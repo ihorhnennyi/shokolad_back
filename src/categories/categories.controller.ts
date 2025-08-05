@@ -161,4 +161,17 @@ export class CategoriesController {
 	findChildren(@Param('parentId') parentId: string) {
 		return this.service.findChildren(parentId)
 	}
+
+	@Get('tree')
+	@ApiOperation({
+		summary: 'Отримати дерево категорій',
+		description: 'Повертає всі категорії у вигляді дерева з підкатегоріями.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Дерево категорій отримано',
+	})
+	findTree() {
+		return this.service.findTree()
+	}
 }

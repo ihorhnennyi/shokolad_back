@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
 import { CreateCategoryDto } from './dto/create-category.dto'
 import { UpdateCategoryDto } from './dto/update-category.dto'
+import { CategoryWithChildren } from './interfaces/category-with-children.interface'
 import { Category, CategoryDocument } from './schemas/category.schema'
 
 @Injectable()
@@ -56,7 +57,6 @@ export class CategoriesService {
 		}
 
 		await this.categoryModel.deleteMany({ parent: id })
-
 		return category
 	}
 
@@ -65,5 +65,42 @@ export class CategoriesService {
 			throw new NotFoundException('Некоректний ID категорії')
 		}
 		return this.categoryModel.find({ parent: parentId })
+	}
+
+	async findTree(): Promise<CategoryWithChildren[]> {
+		const categories = await this.categoryModel.find().lean()
+
+		const categoryMap = new Map<string, CategoryWithChildren>()
+		const roots: CategoryWithChildren[] = []
+
+		for (const category of categories) {
+			const id = (category._id as Types.ObjectId).toString()
+			const parentId = category.parent
+				? (category.parent as Types.ObjectId).toString()
+				: undefined
+
+			const preparedCategory: CategoryWithChildren = {
+				_id: id,
+				name: category.name,
+				description: category.description,
+				parent: parentId,
+				children: [],
+			}
+
+			categoryMap.set(id, preparedCategory)
+		}
+
+		for (const category of categoryMap.values()) {
+			if (category.parent) {
+				const parent = categoryMap.get(category.parent)
+				if (parent) {
+					parent.children.push(category)
+				}
+			} else {
+				roots.push(category)
+			}
+		}
+
+		return roots
 	}
 }
