@@ -7,6 +7,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 	UseGuards,
 } from '@nestjs/common'
 import {
@@ -207,5 +208,19 @@ export class CategoriesController {
 	@ApiNotFoundResponse({ description: 'Категорію не знайдено' })
 	toggleActive(@Param('id') id: string) {
 		return this.service.toggleActive(id)
+	}
+
+	@Get('search')
+	@ApiOperation({
+		summary: 'Пошук категорій за назвою',
+		description: 'Повертає категорії, назва яких містить переданий текст.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Результати пошуку',
+		type: [Category],
+	})
+	search(@Query('query') query: string) {
+		return this.service.search(query)
 	}
 }

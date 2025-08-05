@@ -127,4 +127,11 @@ export class CategoriesService {
 		category.isActive = !category.isActive
 		return category.save()
 	}
+
+	async search(query: string): Promise<Category[]> {
+		if (!query) return []
+		return this.categoryModel.find({
+			name: { $regex: query, $options: 'i' },
+		})
+	}
 }
