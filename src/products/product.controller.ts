@@ -8,8 +8,11 @@ import {
 	Post,
 	Query,
 	Res,
+	UploadedFile,
 	UseGuards,
+	UseInterceptors,
 } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
 import {
 	ApiBadRequestResponse,
 	ApiBearerAuth,
@@ -22,6 +25,8 @@ import {
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger'
 import { Response } from 'express'
+import { diskStorage, File } from 'multer'
+import * as path from 'path'
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'
 import { Roles } from 'src/common/decorators/roles.decorator'
 import { UserRole } from 'src/common/enums/role.enum'
@@ -137,5 +142,28 @@ export class ProductController {
 	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
 	exportToExcel(@Query() query: FilterProductDto, @Res() res: Response) {
 		return this.service.exportToExcel(query, res)
+	}
+
+	@Post('import')
+	@ApiBearerAuth()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN)
+	@UseInterceptors(
+		FileInterceptor('file', {
+			storage: diskStorage({
+				destination: './uploads',
+				filename: (req, file, cb) => {
+					const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
+					cb(null, unique + path.extname(file.originalname))
+				},
+			}),
+		})
+	)
+	@ApiOperation({
+		summary: 'Імпорт продуктів з Excel (лише для адміністратора)',
+	})
+	@ApiResponse({ status: 201, description: 'Продукти імпортовано' })
+	async importExcel(@UploadedFile() file: File) {
+		return this.service.importFromExcel(file.path)
 	}
 }

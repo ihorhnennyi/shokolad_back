@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import ExcelJS from 'exceljs'
 import { Response } from 'express'
+import * as fs from 'fs'
 import { Model } from 'mongoose'
 import { CreateProductDto } from './dto/create-product.dto'
 import { FilterProductDto } from './dto/filter-product.dto'
@@ -86,7 +87,6 @@ export class ProductService {
 		const workbook = new ExcelJS.Workbook()
 		const worksheet = workbook.addWorksheet('Products')
 
-		// Заголовки
 		worksheet.columns = [
 			{ header: 'Назва', key: 'name', width: 30 },
 			{ header: 'Ціна', key: 'price', width: 10 },
@@ -95,7 +95,6 @@ export class ProductService {
 			{ header: 'Дата створення', key: 'createdAt', width: 20 },
 		]
 
-		// Данные
 		products.forEach(product => {
 			worksheet.addRow({
 				name: product.name,
@@ -117,5 +116,47 @@ export class ProductService {
 
 		await workbook.xlsx.write(res)
 		res.end()
+	}
+
+	async importFromExcel(
+		filePath: string
+	): Promise<{ created: number; skipped: number }> {
+		const workbook = new ExcelJS.Workbook()
+		await workbook.xlsx.readFile(filePath)
+
+		const worksheet = workbook.getWorksheet(1)
+		if (!worksheet) {
+			throw new Error('Не удалось получить лист Excel')
+		}
+
+		let created = 0
+		let skipped = 0
+
+		for (let i = 2; i <= worksheet.rowCount; i++) {
+			const row = worksheet.getRow(i)
+			const rowValues = row.values as any[]
+			const [name, price, categoryName, isActive] = rowValues.slice(1)
+
+			if (!name || !price) {
+				skipped++
+				continue
+			}
+
+			const category = await this.model.db
+				.collection('categories')
+				.findOne({ name: categoryName })
+
+			await this.model.create({
+				name: String(name),
+				price: parseFloat(price),
+				isActive: String(isActive).trim().toLowerCase() === 'так',
+				category: category?._id || null,
+			})
+
+			created++
+		}
+
+		fs.unlinkSync(filePath)
+		return { created, skipped }
 	}
 }
