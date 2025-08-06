@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { CreateProductDto } from './dto/create-product.dto'
 import { FilterProductDto } from './dto/filter-product.dto'
+import { PaginatedResponseDto } from './dto/paginated-response.dto'
 import { UpdateProductDto } from './dto/update-product.dto'
 import { Product, ProductDocument } from './schemas/product.schema'
 
@@ -34,14 +35,15 @@ export class ProductService {
 		return deleted
 	}
 
-	async findAll(query: FilterProductDto) {
+	async findAll(
+		query: FilterProductDto
+	): Promise<PaginatedResponseDto<Product>> {
 		const { limit = '10', page = '1', category, isActive, search } = query
 
 		const filters: any = {}
-
 		if (category) filters.category = category
 		if (isActive !== undefined) filters.isActive = isActive
-		if (search) filters.name = { $regex: search, $options: 'i' } // нечіткий пошук по назві
+		if (search) filters.name = { $regex: search, $options: 'i' }
 
 		const limitNum = parseInt(limit)
 		const pageNum = parseInt(page)

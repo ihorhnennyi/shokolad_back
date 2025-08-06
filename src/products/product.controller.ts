@@ -14,6 +14,7 @@ import {
 	ApiBearerAuth,
 	ApiForbiddenResponse,
 	ApiNotFoundResponse,
+	ApiOkResponse,
 	ApiOperation,
 	ApiResponse,
 	ApiTags,
@@ -25,6 +26,7 @@ import { UserRole } from 'src/common/enums/role.enum'
 import { RolesGuard } from 'src/common/guards/roles.guard'
 import { CreateProductDto } from './dto/create-product.dto'
 import { FilterProductDto } from './dto/filter-product.dto'
+import { PaginatedResponseDto } from './dto/paginated-response.dto'
 import { UpdateProductDto } from './dto/update-product.dto'
 import { ProductService } from './product.service'
 import { Product } from './schemas/product.schema'
@@ -55,8 +57,8 @@ export class ProductController {
 	@ApiOperation({
 		summary: 'Отримати продукти з фільтрацією, пошуком та пагінацією',
 	})
-	@ApiResponse({
-		status: 200,
+	@ApiOkResponse({
+		description: 'Список продуктів з пагінацією',
 		schema: {
 			example: {
 				items: [
@@ -66,13 +68,15 @@ export class ProductController {
 						price: 100,
 					},
 				],
-				totalCount: 24,
-				totalPages: 3,
+				totalCount: 42,
+				totalPages: 5,
 				currentPage: 1,
 			},
 		},
 	})
-	findAll(@Query() query: FilterProductDto) {
+	findAll(
+		@Query() query: FilterProductDto
+	): Promise<PaginatedResponseDto<Product>> {
 		return this.service.findAll(query)
 	}
 
