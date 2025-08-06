@@ -1,13 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger'
-import {
-	IsBoolean,
-	IsMongoId,
-	IsNumberString,
-	IsOptional,
-	IsString,
-} from 'class-validator'
+import { IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator'
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto'
 
-export class FilterProductDto {
+export class FilterProductDto extends PaginationQueryDto {
 	@ApiPropertyOptional({
 		example: '64f50fdce2...',
 		description: 'ID категорії',
@@ -26,13 +21,19 @@ export class FilterProductDto {
 	@IsString()
 	search?: string
 
-	@ApiPropertyOptional({ example: '10', description: 'Кількість на сторінку' })
+	@ApiPropertyOptional({
+		example: 'createdAt',
+		description: 'Поле для сортування (name, price, createdAt...)',
+	})
 	@IsOptional()
-	@IsNumberString()
-	limit?: string
+	@IsString()
+	sortBy?: string
 
-	@ApiPropertyOptional({ example: '1', description: 'Номер сторінки' })
+	@ApiPropertyOptional({
+		example: 'asc',
+		description: 'Напрям сортування: asc або desc',
+	})
 	@IsOptional()
-	@IsNumberString()
-	page?: string
+	@IsString()
+	order?: 'asc' | 'desc'
 }
