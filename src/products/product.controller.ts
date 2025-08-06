@@ -7,6 +7,7 @@ import {
 	Patch,
 	Post,
 	Query,
+	Res,
 	UseGuards,
 } from '@nestjs/common'
 import {
@@ -20,6 +21,7 @@ import {
 	ApiTags,
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger'
+import { Response } from 'express'
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'
 import { Roles } from 'src/common/decorators/roles.decorator'
 import { UserRole } from 'src/common/enums/role.enum'
@@ -119,5 +121,21 @@ export class ProductController {
 	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
 	remove(@Param('id') id: string) {
 		return this.service.remove(id)
+	}
+
+	@Get('export')
+	@ApiBearerAuth()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN)
+	@ApiOperation({
+		summary: 'Експорт продуктів у Excel (лише для адміністратора)',
+	})
+	@ApiOkResponse({
+		description: 'Excel-файл буде повернуто як вкладення',
+	})
+	@ApiUnauthorizedResponse({ description: 'Користувач не авторизований' })
+	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
+	exportToExcel(@Query() query: FilterProductDto, @Res() res: Response) {
+		return this.service.exportToExcel(query, res)
 	}
 }

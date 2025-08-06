@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
+import ExcelJS from 'exceljs'
+import { Response } from 'express'
 import { Model } from 'mongoose'
 import { CreateProductDto } from './dto/create-product.dto'
 import { FilterProductDto } from './dto/filter-product.dto'
@@ -65,5 +67,55 @@ export class ProductService {
 			totalPages: Math.ceil(totalCount / limitNum),
 			currentPage: pageNum,
 		}
+	}
+
+	async exportToExcel(query: FilterProductDto, res: Response): Promise<void> {
+		const { limit = '1000', page = '1', category, isActive, search } = query
+
+		const filters: any = {}
+		if (category) filters.category = category
+		if (isActive !== undefined) filters.isActive = isActive
+		if (search) filters.name = { $regex: search, $options: 'i' }
+
+		const products = await this.model
+			.find(filters)
+			.populate('category')
+			.sort({ createdAt: -1 })
+			.limit(parseInt(limit))
+
+		const workbook = new ExcelJS.Workbook()
+		const worksheet = workbook.addWorksheet('Products')
+
+		// Заголовки
+		worksheet.columns = [
+			{ header: 'Назва', key: 'name', width: 30 },
+			{ header: 'Ціна', key: 'price', width: 10 },
+			{ header: 'Категорія', key: 'category', width: 20 },
+			{ header: 'Активний', key: 'isActive', width: 10 },
+			{ header: 'Дата створення', key: 'createdAt', width: 20 },
+		]
+
+		// Данные
+		products.forEach(product => {
+			worksheet.addRow({
+				name: product.name,
+				price: product.price,
+				category:
+					typeof product.category === 'object' && 'name' in product.category
+						? (product.category as any).name
+						: '',
+				isActive: product.isActive ? 'Так' : 'Ні',
+				createdAt: product.createdAt.toLocaleString('uk-UA'),
+			})
+		})
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		)
+		res.setHeader('Content-Disposition', 'attachment; filename=products.xlsx')
+
+		await workbook.xlsx.write(res)
+		res.end()
 	}
 }
