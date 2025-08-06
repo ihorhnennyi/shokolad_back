@@ -6,6 +6,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 	UseGuards,
 } from '@nestjs/common'
 import {
@@ -23,6 +24,7 @@ import { Roles } from 'src/common/decorators/roles.decorator'
 import { UserRole } from 'src/common/enums/role.enum'
 import { RolesGuard } from 'src/common/guards/roles.guard'
 import { CreateProductDto } from './dto/create-product.dto'
+import { FilterProductDto } from './dto/filter-product.dto'
 import { UpdateProductDto } from './dto/update-product.dto'
 import { ProductService } from './product.service'
 import { Product } from './schemas/product.schema'
@@ -51,16 +53,27 @@ export class ProductController {
 
 	@Get()
 	@ApiOperation({
-		summary: 'Отримати всі продукти',
-		description: 'Повертає список усіх продуктів.',
+		summary: 'Отримати продукти з фільтрацією, пошуком та пагінацією',
 	})
 	@ApiResponse({
 		status: 200,
-		type: [Product],
-		description: 'Список продуктів отримано',
+		schema: {
+			example: {
+				items: [
+					{
+						_id: '64f...',
+						name: 'Шоколад чорний',
+						price: 100,
+					},
+				],
+				totalCount: 24,
+				totalPages: 3,
+				currentPage: 1,
+			},
+		},
 	})
-	findAll() {
-		return this.service.findAll()
+	findAll(@Query() query: FilterProductDto) {
+		return this.service.findAll(query)
 	}
 
 	@Get(':id')
