@@ -5,7 +5,7 @@ import { AuthModule } from './auth/auth.module'
 import { CategoriesModule } from './categories/categories.module'
 import { OptionsModule } from './options/options.module'
 import { OrdersModule } from './orders/orders.module'
-import { ProductsModule } from './products/products.module'
+import { ProductModule } from './products/product.module'
 import { UserModule } from './users/user.module'
 
 @Module({
@@ -16,7 +16,7 @@ import { UserModule } from './users/user.module'
 		MongooseModule.forRoot(process.env.MONGODB_URI || ''),
 		AuthModule,
 		UserModule,
-		ProductsModule,
+		ProductModule,
 		CategoriesModule,
 		OptionsModule,
 		OrdersModule,
