@@ -6,6 +6,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 	UseGuards,
 } from '@nestjs/common'
 import {
@@ -24,6 +25,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard'
 import { Roles } from '../common/decorators/roles.decorator'
 import { UserRole } from '../common/enums/role.enum'
 
+import { FilterOrdersDto } from './dto/filter-orders.dto'
 import { CreateOrderDto, UpdateOrderDto } from './dto/order.dto'
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto'
 import { OrderService } from './orders.service'
@@ -50,21 +52,26 @@ export class OrderController {
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles(UserRole.ADMIN, UserRole.MANAGER)
 	@ApiOperation({
-		summary: 'Отримати всі замовлення',
-		description:
-			'Повертає список усіх замовлень. Доступно менеджеру та адміну.',
+		summary: 'Фільтрація і пагінація замовлень',
+		description: 'Повертає замовлення з фільтрацією та пагінацією',
 	})
 	@ApiResponse({
 		status: 200,
-		description: 'Список замовлень отримано',
-		type: [Order],
+		description: 'Замовлення отримано',
+		schema: {
+			example: {
+				items: [
+					/* массив заказов */
+				],
+				total: 58,
+				page: 1,
+				limit: 20,
+				pages: 3,
+			},
+		},
 	})
-	@ApiUnauthorizedResponse({ description: 'Користувач не авторизований' })
-	@ApiForbiddenResponse({
-		description: 'Доступ лише для менеджера або адміністратора',
-	})
-	findAll() {
-		return this.service.findAll()
+	findAllFiltered(@Query() query: FilterOrdersDto) {
+		return this.service.findAllFiltered(query)
 	}
 
 	@Get(':id')

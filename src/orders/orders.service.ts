@@ -9,6 +9,7 @@ import { CreateOrderDto, UpdateOrderDto } from './dto/order.dto'
 import { Order, OrderDocument } from './schemas/order.schema'
 
 import { Product, ProductDocument } from '../products/schemas/product.schema'
+import { FilterOrdersDto } from './dto/filter-orders.dto'
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto'
 
 @Injectable()
@@ -43,12 +44,48 @@ export class OrderService {
 		return order.save()
 	}
 
-	async findAll(): Promise<Order[]> {
-		return this.orderModel
-			.find()
-			.populate('user')
-			.populate('items.product')
-			.exec()
+	async findAllFiltered(query: FilterOrdersDto) {
+		const {
+			status,
+			user,
+			customerName,
+			customerPhone,
+			page = '1',
+			limit = '20',
+		} = query
+
+		const filter: any = {}
+
+		if (status) filter.status = status
+		if (user) filter.user = user
+		if (customerName)
+			filter.customerName = { $regex: customerName, $options: 'i' }
+		if (customerPhone)
+			filter.customerPhone = { $regex: customerPhone, $options: 'i' }
+
+		const pageNum = Number(page)
+		const limitNum = Number(limit)
+		const skip = (pageNum - 1) * limitNum
+
+		const [items, total] = await Promise.all([
+			this.orderModel
+				.find(filter)
+				.populate('user')
+				.populate('items.product')
+				.skip(skip)
+				.limit(limitNum)
+				.sort({ createdAt: -1 })
+				.exec(),
+			this.orderModel.countDocuments(filter),
+		])
+
+		return {
+			items,
+			total,
+			page: pageNum,
+			limit: limitNum,
+			pages: Math.ceil(total / limitNum),
+		}
 	}
 
 	async findById(id: string): Promise<Order> {
