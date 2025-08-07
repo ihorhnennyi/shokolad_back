@@ -4,6 +4,7 @@ import {
 	NotFoundException,
 } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
+import ExcelJS from 'exceljs'
 import { Model, Types } from 'mongoose'
 import { CreateOrderDto, UpdateOrderDto } from './dto/order.dto'
 import { Order, OrderDocument } from './schemas/order.schema'
@@ -138,11 +139,22 @@ export class OrderService {
 		return { deleted: true }
 	}
 
-	async updateStatus(id: string, dto: UpdateOrderStatusDto): Promise<Order> {
+	async updateStatus(
+		id: string,
+		dto: UpdateOrderStatusDto,
+		updatedBy?: string
+	): Promise<Order> {
 		const order = await this.orderModel.findById(id)
 		if (!order) throw new NotFoundException('Замовлення не знайдено')
 
 		order.status = dto.status
+		order.history.push({
+			status: dto.status,
+			comment: dto.comment,
+			updatedBy: updatedBy ? new Types.ObjectId(updatedBy) : undefined,
+			updatedAt: new Date(),
+		})
+
 		await order.save()
 
 		const updatedOrder = await this.orderModel
@@ -152,5 +164,56 @@ export class OrderService {
 			.exec()
 
 		return updatedOrder as Order
+	}
+
+	async exportToExcel(query: FilterOrdersDto): Promise<Buffer> {
+		const { status, user, customerName, customerPhone } = query
+
+		const filter: any = {}
+		if (status) filter.status = status
+		if (user) filter.user = user
+		if (customerName)
+			filter.customerName = { $regex: customerName, $options: 'i' }
+		if (customerPhone)
+			filter.customerPhone = { $regex: customerPhone, $options: 'i' }
+
+		const orders = await this.orderModel
+			.find(filter)
+			.populate('user')
+			.populate('items.product')
+			.sort({ createdAt: -1 })
+			.exec()
+
+		const workbook = new ExcelJS.Workbook()
+		const worksheet = workbook.addWorksheet('Orders')
+
+		worksheet.columns = [
+			{ header: 'Order ID', key: 'id', width: 25 },
+			{ header: 'Date', key: 'date', width: 18 },
+			{ header: 'Status', key: 'status', width: 14 },
+			{ header: 'Total', key: 'total', width: 10 },
+			{ header: 'Customer Name', key: 'customerName', width: 20 },
+			{ header: 'Customer Phone', key: 'customerPhone', width: 16 },
+			{ header: 'User Email', key: 'userEmail', width: 25 },
+			{ header: 'Items', key: 'items', width: 40 },
+		]
+
+		for (const order of orders) {
+			worksheet.addRow({
+				id: (order._id as any).toString(),
+				date: (order as any).createdAt?.toLocaleString() ?? '',
+				status: order.status,
+				total: order.total,
+				customerName: order.customerName,
+				customerPhone: order.customerPhone,
+				userEmail: (order.user as any)?.email || '',
+				items: order.items
+					.map(item => `${(item.product as any)?.name || ''} x${item.quantity}`)
+					.join('; '),
+			})
+		}
+
+		const buffer = Buffer.from(await workbook.xlsx.writeBuffer())
+		return buffer
 	}
 }

@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger'
-import { IsEnum } from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { IsEnum, IsOptional, IsString } from 'class-validator'
 import { OrderStatus } from '../schemas/order.schema'
 
 export class UpdateOrderStatusDto {
@@ -10,4 +10,12 @@ export class UpdateOrderStatusDto {
 	})
 	@IsEnum(OrderStatus)
 	status: OrderStatus
+
+	@ApiPropertyOptional({
+		example: 'Оплата підтверджена, відправляємо замовлення.',
+		description: 'Коментар до зміни статусу',
+	})
+	@IsOptional()
+	@IsString()
+	comment?: string
 }

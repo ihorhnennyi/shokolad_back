@@ -7,6 +7,7 @@ import {
 	Patch,
 	Post,
 	Query,
+	Res,
 	UseGuards,
 } from '@nestjs/common'
 import {
@@ -19,6 +20,7 @@ import {
 	ApiTags,
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger'
+import { Response } from 'express'
 
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'
 import { RolesGuard } from 'src/common/guards/roles.guard'
@@ -142,5 +144,57 @@ export class OrderController {
 	})
 	updateStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
 		return this.service.updateStatus(id, dto)
+	}
+
+	@Get('export/excel')
+	@ApiBearerAuth()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN, UserRole.MANAGER)
+	@ApiOperation({
+		summary: 'Експортувати замовлення у Excel',
+		description:
+			'Експортує всі замовлення (з фільтрацією) у Excel-файл (.xlsx)',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Excel файл',
+	})
+	async exportExcel(@Query() query: FilterOrdersDto, @Res() res: Response) {
+		const buffer = await this.service.exportToExcel(query)
+		const filename = `orders_export_${Date.now()}.xlsx`
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		)
+		res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+		res.end(buffer)
+	}
+
+	@Get(':id/history')
+	@ApiBearerAuth()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN, UserRole.MANAGER)
+	@ApiOperation({
+		summary: 'Переглянути історію змін замовлення',
+		description: 'Повертає повну історію змін по замовленню',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Історія змін отримана',
+		schema: {
+			example: [
+				{
+					status: 'processing',
+					comment: 'Замовлення прийняте в роботу',
+					updatedBy: '64fa1...',
+					updatedAt: '2024-08-07T14:32:00.000Z',
+				},
+				// ...
+			],
+		},
+	})
+	async getHistory(@Param('id') id: string) {
+		const order = await this.service.findById(id)
+		return order.history || []
 	}
 }

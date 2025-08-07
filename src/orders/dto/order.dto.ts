@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Type } from 'class-transformer'
 import {
 	IsArray,
@@ -13,7 +13,7 @@ import {
 import { OrderStatus } from '../schemas/order.schema'
 
 export class OrderItemDto {
-	@ApiProperty({ example: '64fabc123...', description: 'ID продукта' })
+	@ApiProperty({ example: '64fabc123...', description: 'ID продукту' })
 	@IsMongoId()
 	product: string
 
@@ -56,60 +56,52 @@ export class CreateOrderDto {
 }
 
 export class UpdateOrderItemDto {
-	@ApiProperty({
-		example: '64fabc123...',
-		description: 'ID продукта',
-		required: false,
-	})
+	@ApiPropertyOptional({ example: '64fabc123...', description: 'ID продукту' })
 	@IsOptional()
 	@IsMongoId()
 	product?: string
 
-	@ApiProperty({ example: 2, description: 'Кількість', required: false })
+	@ApiPropertyOptional({ example: 2, description: 'Кількість' })
 	@IsOptional()
 	@IsNumber()
 	quantity?: number
 }
 
 export class UpdateOrderDto {
-	@ApiProperty({ required: false, type: [UpdateOrderItemDto] })
+	@ApiPropertyOptional({
+		type: [UpdateOrderItemDto],
+		description: 'Список товарів',
+	})
 	@IsOptional()
 	@IsArray()
 	@ValidateNested({ each: true })
 	@Type(() => UpdateOrderItemDto)
 	items?: UpdateOrderItemDto[]
 
-	@ApiProperty({
+	@ApiPropertyOptional({
 		example: 'Київ, вул. Хрещатик, 10',
 		description: 'Адреса доставки',
-		required: false,
 	})
 	@IsOptional()
 	@IsString()
 	deliveryAddress?: string
 
-	@ApiProperty({
-		example: 'Ігор',
-		description: "Ім'я замовника",
-		required: false,
-	})
+	@ApiPropertyOptional({ example: 'Ігор', description: "Ім'я замовника" })
 	@IsOptional()
 	@IsString()
 	customerName?: string
 
-	@ApiProperty({
+	@ApiPropertyOptional({
 		example: '+380991234567',
 		description: 'Телефон замовника',
-		required: false,
 	})
 	@IsOptional()
 	@IsString()
 	customerPhone?: string
 
-	@ApiProperty({
+	@ApiPropertyOptional({
 		example: OrderStatus.COMPLETED,
 		description: 'Статус замовлення',
-		required: false,
 		enum: OrderStatus,
 	})
 	@IsOptional()

@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import {
+	IsDateString,
 	IsEnum,
 	IsMongoId,
 	IsNumberString,
@@ -28,6 +29,16 @@ export class FilterOrdersDto {
 	@IsOptional()
 	@IsString()
 	customerPhone?: string
+
+	@ApiPropertyOptional({ description: 'Дата c (ISO 8601)' })
+	@IsOptional()
+	@IsDateString()
+	dateFrom?: string
+
+	@ApiPropertyOptional({ description: 'Дата по (ISO 8601)' })
+	@IsOptional()
+	@IsDateString()
+	dateTo?: string
 
 	@ApiPropertyOptional({ description: 'Страница', default: 1 })
 	@IsOptional()
