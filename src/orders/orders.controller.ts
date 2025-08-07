@@ -25,6 +25,7 @@ import { Roles } from '../common/decorators/roles.decorator'
 import { UserRole } from '../common/enums/role.enum'
 
 import { CreateOrderDto, UpdateOrderDto } from './dto/order.dto'
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto'
 import { OrderService } from './orders.service'
 import { Order } from './schemas/order.schema'
 
@@ -34,16 +35,11 @@ export class OrderController {
 	constructor(private readonly service: OrderService) {}
 
 	@Post()
-	@ApiBearerAuth()
-	@UseGuards(JwtAuthGuard, RolesGuard)
-	@Roles(UserRole.ADMIN)
 	@ApiOperation({
-		summary: 'Створити замовлення (лише для адміністратора)',
-		description: `Створює нове замовлення. Доступно лише адміністраторам.`,
+		summary: 'Створити замовлення',
+		description: `Створює нове замовлення. Доступно всім користувачам (наприклад, клиент на сайті).`,
 	})
 	@ApiResponse({ status: 201, description: 'Замовлення створено', type: Order })
-	@ApiUnauthorizedResponse({ description: 'Користувач не авторизований' })
-	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
 	@ApiBadRequestResponse({ description: 'Некоректні дані замовлення' })
 	create(@Body() dto: CreateOrderDto) {
 		return this.service.create(dto)
@@ -51,15 +47,21 @@ export class OrderController {
 
 	@Get()
 	@ApiBearerAuth()
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN, UserRole.MANAGER)
 	@ApiOperation({
 		summary: 'Отримати всі замовлення',
-		description: 'Повертає список усіх замовлень.',
+		description:
+			'Повертає список усіх замовлень. Доступно менеджеру та адміну.',
 	})
 	@ApiResponse({
 		status: 200,
 		description: 'Список замовлень отримано',
 		type: [Order],
+	})
+	@ApiUnauthorizedResponse({ description: 'Користувач не авторизований' })
+	@ApiForbiddenResponse({
+		description: 'Доступ лише для менеджера або адміністратора',
 	})
 	findAll() {
 		return this.service.findAll()
@@ -67,13 +69,19 @@ export class OrderController {
 
 	@Get(':id')
 	@ApiBearerAuth()
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN, UserRole.MANAGER)
 	@ApiOperation({
 		summary: 'Отримати замовлення за ID',
-		description: 'Повертає замовлення за унікальним ідентифікатором.',
+		description:
+			'Повертає замовлення за унікальним ідентифікатором. Доступно менеджеру та адміну.',
 	})
 	@ApiResponse({ status: 200, description: 'Замовлення знайдено', type: Order })
 	@ApiNotFoundResponse({ description: 'Замовлення не знайдено' })
+	@ApiUnauthorizedResponse({ description: 'Користувач не авторизований' })
+	@ApiForbiddenResponse({
+		description: 'Доступ лише для менеджера або адміністратора',
+	})
 	findById(@Param('id') id: string) {
 		return this.service.findById(id)
 	}
@@ -81,14 +89,17 @@ export class OrderController {
 	@Patch(':id')
 	@ApiBearerAuth()
 	@UseGuards(JwtAuthGuard, RolesGuard)
-	@Roles(UserRole.ADMIN)
+	@Roles(UserRole.ADMIN, UserRole.MANAGER)
 	@ApiOperation({
-		summary: 'Оновити замовлення (лише для адміністратора)',
-		description: 'Оновлює замовлення за ID.',
+		summary: 'Оновити замовлення',
+		description: 'Оновлює замовлення за ID. Доступно менеджеру та адміну.',
 	})
 	@ApiResponse({ status: 200, description: 'Замовлення оновлено', type: Order })
 	@ApiNotFoundResponse({ description: 'Замовлення не знайдено' })
-	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
+	@ApiUnauthorizedResponse({ description: 'Користувач не авторизований' })
+	@ApiForbiddenResponse({
+		description: 'Доступ лише для менеджера або адміністратора',
+	})
 	update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
 		return this.service.update(id, dto)
 	}
@@ -98,13 +109,31 @@ export class OrderController {
 	@UseGuards(JwtAuthGuard, RolesGuard)
 	@Roles(UserRole.ADMIN)
 	@ApiOperation({
-		summary: 'Видалити замовлення (лише для адміністратора)',
-		description: 'Видаляє замовлення за його ID.',
+		summary: 'Видалити замовлення',
+		description: 'Видаляє замовлення за його ID. Доступно тільки адміну.',
 	})
 	@ApiResponse({ status: 200, description: 'Замовлення видалено' })
 	@ApiNotFoundResponse({ description: 'Замовлення не знайдено' })
+	@ApiUnauthorizedResponse({ description: 'Користувач не авторизований' })
 	@ApiForbiddenResponse({ description: 'Доступ лише для адміністратора' })
 	remove(@Param('id') id: string) {
 		return this.service.remove(id)
+	}
+
+	@Patch(':id/status')
+	@ApiBearerAuth()
+	@UseGuards(JwtAuthGuard, RolesGuard)
+	@Roles(UserRole.ADMIN, UserRole.MANAGER)
+	@ApiOperation({
+		summary: 'Змінити статус замовлення',
+		description: 'Оновлює статус замовлення (доступно менеджеру та адміну).',
+	})
+	@ApiResponse({ status: 200, description: 'Статус оновлено', type: Order })
+	@ApiNotFoundResponse({ description: 'Замовлення не знайдено' })
+	@ApiForbiddenResponse({
+		description: 'Доступ лише для менеджера або адміністратора',
+	})
+	updateStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
+		return this.service.updateStatus(id, dto)
 	}
 }

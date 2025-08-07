@@ -9,6 +9,7 @@ import { CreateOrderDto, UpdateOrderDto } from './dto/order.dto'
 import { Order, OrderDocument } from './schemas/order.schema'
 
 import { Product, ProductDocument } from '../products/schemas/product.schema'
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto'
 
 @Injectable()
 export class OrderService {
@@ -98,5 +99,21 @@ export class OrderService {
 		const res = await this.orderModel.findByIdAndDelete(id).exec()
 		if (!res) throw new NotFoundException('Замовлення не знайдено')
 		return { deleted: true }
+	}
+
+	async updateStatus(id: string, dto: UpdateOrderStatusDto): Promise<Order> {
+		const order = await this.orderModel.findById(id)
+		if (!order) throw new NotFoundException('Замовлення не знайдено')
+
+		order.status = dto.status
+		await order.save()
+
+		const updatedOrder = await this.orderModel
+			.findById(id)
+			.populate('user')
+			.populate('items.product')
+			.exec()
+
+		return updatedOrder as Order
 	}
 }
